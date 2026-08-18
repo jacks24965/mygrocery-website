@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - MYGrocery</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-top">
+            <a href="index.html" class="logo"><span class="logo-icon">&#128722;</span> MY<span>Grocery</span></a>
+            <button class="hamburger" aria-label="Toggle navigation menu"><span></span><span></span><span></span></button>
+        </div>
+        <nav class="main-nav">
+            <ul class="nav-list nav-main-links"></ul>
+            <ul class="nav-list nav-user-links"></ul>
+        </nav>
+    </header>
+    <main class="section"><div class="container" style="max-width:480px;">
+        <div class="card">
+            <h2 style="text-align:center;">Login to MYGrocery</h2>
+            <div id="login-error" class="error-msg" role="alert"></div>
+            <div id="login-success" class="form-success" role="status"></div>
+            <form id="login-form" class="contact-form" novalidate>
+                <div class="form-group">
+                    <label for="login-email">Email or Username</label>
+                    <input type="text" id="login-email" placeholder="Enter email or username" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="Enter password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;">Login</button>
+            </form>
+            <p style="text-align:center;margin-top:1rem;font-size:0.9rem;">
+                Don't have an account? <a href="signup.html">Sign Up</a><br>
+                <a href="forgot-password.html">Forgot Password?</a>
+            </p>
+            <p style="text-align:center;font-size:0.82rem;color:var(--text-light);margin-top:0.8rem;">This is a front-end demo. No data is sent to a server.</p>
+        </div>
+    </div></main>
+    <footer class="site-footer">
+        <div class="footer-grid">
+            <div class="footer-brand"><h3>&#128722; MYGrocery</h3><p>Smart Grocery List & Calculator.</p></div>
+            <div class="footer-col"><h4>Quick Links</h4><a href="index.html">Home</a><a href="calculator.html">Calculator</a><a href="list.html">Grocery List</a><a href="saved.html">Saved Calculations</a><a href="about.html">About</a><a href="contact.html">Contact</a></div>
+            <div class="footer-col"><h4>Contact</h4><a href="mailto:info@mygrocery.com.my">info@mygrocery.com.my</a><p style="font-size:0.85rem;color:rgba(255,255,255,0.6);margin-top:0.5rem;">Kuala Lumpur, Malaysia</p></div>
+        </div>
+        <div class="footer-bottom"><span>&copy; 2026 MYGrocery. All rights reserved.</span><span>JavaScript Lab Assignment</span></div>
+    </footer>
+    <script src="js/products.js"></script><script src="js/shopping-list.js"></script><script src="js/app.js"></script>
+    <script>
+    (function(){
+        MYG.renderNav('login');
+        var session = MYG.getSession();
+        if (session && session.loggedIn) { window.location.href = 'profile.html'; return; }
+        document.getElementById('login-form').addEventListener('submit', function(e){
+            e.preventDefault();
+            var email = document.getElementById('login-email').value.trim();
+            var pass = document.getElementById('login-password').value;
+            var err = document.getElementById('login-error');
+            var suc = document.getElementById('login-success');
+            err.textContent=''; err.classList.remove('show');
+            suc.textContent=''; suc.classList.remove('show');
+            if (!email) { err.textContent='Email or username is required.'; err.classList.add('show'); return; }
+            if (!pass) { err.textContent='Password is required.'; err.classList.add('show'); return; }
+            var users = MYG.getUsers();
+            var user = users.find(function(u){ return (u.email.toLowerCase()===email.toLowerCase() || u.username.toLowerCase()===email.toLowerCase()) && u.password===pass; });
+            if (!user) { err.textContent='Invalid email/username or password.'; err.classList.add('show'); return; }
+            MYG.setSession({ loggedIn:true, userId: user.id, name: user.name, email: user.email, username: user.username, age: user.age, joinedAt: user.joinedAt });
+            suc.textContent='Login successful! Redirecting...'; suc.classList.add('show');
+            setTimeout(function(){ window.location.href='profile.html'; }, 1000);
+        });
+    })();
+    </script>
+</body></html>
+

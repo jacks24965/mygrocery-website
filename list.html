@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grocery List - MYGrocery</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-top">
+            <a href="index.html" class="logo"><span class="logo-icon">&#128722;</span> MY<span>Grocery</span></a>
+            <button class="hamburger" aria-label="Toggle navigation menu"><span></span><span></span><span></span></button>
+        </div>
+        <nav class="main-nav">
+            <ul class="nav-list nav-main-links"></ul>
+            <ul class="nav-list nav-user-links"></ul>
+        </nav>
+    </header>
+
+    <main class="section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Grocery List</h2>
+                <p>Browse Malaysian grocery products, search by name, filter by category, and build your shopping list.</p>
+            </div>
+
+            <!-- Search -->
+            <div class="search-box" style="max-width:600px;margin:0 auto 1.5rem;">
+                <input type="text" id="grocery-search" placeholder="Search groceries... (e.g. apple, chicken, rice)" autocomplete="off" aria-label="Search groceries">
+            </div>
+
+            <!-- Category Buttons -->
+            <div class="category-buttons" id="category-buttons"></div>
+
+            <!-- Sort Controls -->
+            <div style="display:flex;justify-content:flex-end;gap:0.8rem;margin:0.8rem 0;flex-wrap:wrap;">
+                <select id="grocery-sort" class="sort-select" aria-label="Sort products" style="padding:0.4rem 0.8rem;border:2px solid var(--border);border-radius:6px;font-size:0.85rem;background:var(--bg-white);cursor:pointer;">
+                    <option value="default">Sort By</option>
+                    <option value="name-asc">Name A-Z</option>
+                    <option value="name-desc">Name Z-A</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                </select>
+            </div>
+
+            <!-- Main Layout -->
+            <div class="grocery-layout">
+                <div>
+                    
+
+                    <!-- Product Grid -->
+                    <h3 id="products-heading" style="color:var(--primary-dark);margin-bottom:1rem;">All Products</h3>
+                    <div class="products-grid" id="product-grid"></div>
+                    <div id="no-results" class="empty-state" style="display:none;">
+                        <span class="empty-icon">&#128269;</span>
+                        <h3>No products found</h3>
+                        <p>Try adjusting your search or category filter.</p>
+                    </div>
+                </div>
+
+                <!-- Shopping List Panel -->
+                <aside class="shopping-panel" aria-label="Shopping list">
+                    <div class="panel-header">
+                        <h3>Shopping List</h3>
+                        <span class="badge" id="list-count">0</span>
+                    </div>
+                    <div class="panel-items" id="panel-items">
+                        <div class="panel-empty"><span class="empty-icon">&#128221;</span><p>Your shopping list is empty.<br>Click <strong>Add to List</strong> on any product.</p></div>
+                    </div>
+                    <div class="panel-footer">
+                        <div class="panel-subtotal"><span>Subtotal</span><span id="list-subtotal">RM0.00</span></div>
+                        <div style="display:flex;gap:0.5rem;">
+                            <button id="btn-clear-list" class="btn btn-danger btn-sm" style="flex:1;">Clear List</button>
+                            <a href="calculator.html" class="btn btn-green btn-sm" style="flex:1;text-align:center;">Calculate</a>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <div class="disclaimer">
+                <strong>Price Disclaimer:</strong> Product prices are representative Malaysian retail prices and may vary by store, location, promotions and date.
+            </div>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-grid">
+            <div class="footer-brand"><h3>&#128722; MYGrocery</h3><p>Smart Grocery List &amp; Calculator for managing grocery purchases and calculating totals in Malaysian Ringgit (RM).</p></div>
+            <div class="footer-col"><h4>Quick Links</h4><a href="index.html">Home</a><a href="calculator.html">Calculator</a><a href="list.html">Grocery List</a><a href="saved.html">Saved Calculations</a><a href="about.html">About</a><a href="contact.html">Contact</a></div>
+            <div class="footer-col"><h4>Contact</h4><a href="mailto:info@mygrocery.com.my">info@mygrocery.com.my</a><a href="tel:+60312345678">+603-1234 5678</a><p style="font-size:0.85rem;color:rgba(255,255,255,0.6);margin-top:0.5rem;">Kuala Lumpur, Malaysia</p></div>
+        </div>
+        <div class="footer-bottom"><span>&copy; 2026 MYGrocery. All rights reserved.</span><span>JavaScript Lab Assignment</span></div>
+    </footer>
+
+    <script src="js/products.js"></script>
+    <script src="js/shopping-list.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+    (function(){
+        MYG.renderNav('list');
+
+        var categoryConfig = {
+            'All': '&#127968;',
+            'Fruits': '&#127822;',
+            'Vegetables': '&#129382;',
+            'Meat & Seafood': '&#129385;',
+            'Dairy & Eggs': '&#129472;',
+            'Pantry & Grains': '&#127786;',
+            'Snacks': '&#127850;',
+            'Household': '&#129535;',
+            'Condiments & Sauces': '&#127869;',
+            'Beverages': '&#127866;'
+        };
+
+        var grid = document.getElementById('product-grid');
+        var noResults = document.getElementById('no-results');
+        var categoryBtns = document.getElementById('category-buttons');
+        
+        var sortSelect = document.getElementById('grocery-sort');
+        var searchInput = document.getElementById('grocery-search');
+        var productsHeading = document.getElementById('products-heading');
+        var currentCategory = 'All';
+        var currentSort = 'default';
+        var currentSearch = '';
+
+        function getCatFromURL() {
+            var params = new URLSearchParams(window.location.search);
+            return params.get('category') || 'All';
+        }
+
+        function initCategoryButtons() {
+            var cats = getCategories();
+            categoryBtns.innerHTML = '';
+            cats.forEach(function(c) {
+                var btn = document.createElement('button');
+                btn.className = 'category-btn';
+                btn.setAttribute('data-category', c);
+                btn.innerHTML = '<span class="cat-icon">' + (categoryConfig[c] || '&#128193;') + '</span> ' + c;
+                btn.addEventListener('click', function() {
+                    currentCategory = c;
+                    updateCategoryActive();
+                    renderProducts();
+                    var prodSection = document.getElementById('products-heading');
+                    if (prodSection) prodSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+                categoryBtns.appendChild(btn);
+            });
+            var urlCat = getCatFromURL();
+            if (urlCat && cats.indexOf(urlCat) !== -1) {
+                currentCategory = urlCat;
+            }
+            updateCategoryActive();
+        }
+
+
+        function updateCategoryActive() {
+            categoryBtns.querySelectorAll('.category-btn').forEach(function(btn) {
+                if (btn.getAttribute('data-category') === currentCategory) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            if (currentCategory === 'All') {
+                productsHeading.textContent = 'All Products';
+            } else {
+                productsHeading.textContent = currentCategory;
+            }
+        }
+
+        function renderProducts() {
+            var products = searchProducts(currentSearch);
+            // When there's a search term, search across ALL products regardless of selected category
+            // When search is empty, apply normal category filtering
+            if (currentSearch && currentSearch.trim() !== '') {
+                // Search mode: don't filter by category, show all matching products
+            } else {
+                // Normal category mode: apply category filter
+                products = filterByCategory(products, currentCategory);
+            }
+            products = sortProducts(products, currentSort);
+            grid.innerHTML = '';
+            if (products.length === 0) {
+                noResults.style.display = 'block';
+                grid.style.display = 'none';
+            } else {
+                noResults.style.display = 'none';
+                grid.style.display = 'grid';
+                products.forEach(function(p) {
+                    grid.appendChild(createProductCard(p));
+                });
+            }
+        }
+
+        function createProductCard(p) {
+            var card = document.createElement('div');
+            card.className = 'product-card';
+            var isKg = p.baseUnit === 'kg' || p.baseUnit === 'L';
+            var isEgg = p.quantityType === 'egg-package';
+            var isSizeQty = p.quantityType === 'size-qty';
+            var isFixedPkg = p.quantityType === 'fixed-package' && p.baseUnit !== 'L';
+            var isL = p.quantityType === 'fixed-package' && p.baseUnit === 'L';
+            var pricePerUnit = isKg ? formatPrice(p.price) + '/kg' : formatPrice(p.price);
+
+            var controlsHTML = '';
+            if (isKg) {
+                controlsHTML =
+                    '<div class="weight-select">' +
+                    '<button class="weight-adj" data-delta="-1">&#8722;</button>' +
+                    '<input type="number" class="weight-input" id="weight-' + p.id + '" step="any" min="0.01" value="' + (p.defaultQty || 1) + '" data-product-id="' + p.id + '">' +
+                    '<button class="weight-adj" data-delta="1">+</button>' +
+                    '<span class="weight-unit">kg</span>' +
+                    '</div>';
+            } else if (isEgg) {
+                controlsHTML =
+                    '<div class="weight-select">' +
+                    '<select class="weight-dropdown" id="purchase-type-' + p.id + '" data-product-id="' + p.id + '">' +
+                    '<option value="single">Single</option>' +
+                    '<option value="case">Case (15)</option>' +
+                    '</select>' +
+                    '<span class="weight-unit">x</span>' +
+                    '<input type="number" class="weight-input" id="egg-qty-' + p.id + '" step="1" min="1" value="' + (p.defaultQty || 1) + '" data-product-id="' + p.id + '">' +
+                    '</div>';
+            } else if (isSizeQty) {
+                controlsHTML =
+                    '<div class="weight-select">' +
+                    '<select class="weight-dropdown" id="size-' + p.id + '" data-product-id="' + p.id + '">' +
+                    (p.sizeOptions || ['1L']).map(function(s) { return '<option value="' + s + '"' + (s === p.defaultSize ? ' selected' : '') + '>' + s + '</option>'; }).join('') +
+                    '</select>' +
+                    '<button class="weight-adj" data-delta="-1">&#8722;</button>' +
+                    '<input type="number" class="weight-input" id="qty-' + p.id + '" step="1" min="1" value="' + (p.defaultQty || 1) + '" data-product-id="' + p.id + '">' +
+                    '<button class="weight-adj" data-delta="1">+</button>' +
+                    '<span class="weight-unit">pcs</span>' +
+                    '</div>';
+            } else if (isFixedPkg) {
+                controlsHTML =
+                    '<div class="weight-select">' +
+                    '<button class="weight-adj" data-delta="-1">&#8722;</button>' +
+                    '<input type="number" class="weight-input" id="qty-' + p.id + '" step="1" min="1" value="' + (p.defaultQty || 1) + '" data-product-id="' + p.id + '">' +
+                    '<button class="weight-adj" data-delta="1">+</button>' +
+                    '<span class="weight-unit">' + p.packageUnit + '</span>' +
+                    '</div>';
+            } else if (isL) {
+                controlsHTML =
+                    '<div class="weight-select">' +
+                    '<button class="weight-adj" data-delta="-1">&#8722;</button>' +
+                    '<input type="number" class="weight-input" id="qty-' + p.id + '" step="any" min="0.01" value="' + (p.defaultQty || 1) + '" data-product-id="' + p.id + '">' +
+                    '<button class="weight-adj" data-delta="1">+</button>' +
+                    '<span class="weight-unit">L</span>' +
+                    '</div>';
+            } else {
+                controlsHTML =
+                    '<div class="weight-select">' +
+                    '<button class="weight-adj" data-delta="-1">&#8722;</button>' +
+                    '<input type="number" class="weight-input" id="qty-' + p.id + '" step="1" min="1" value="' + (p.defaultQty || 1) + '" data-product-id="' + p.id + '">' +
+                    '<button class="weight-adj" data-delta="1">+</button>' +
+                    '<span class="weight-unit">pcs</span>' +
+                    '</div>';
+            }
+
+            card.innerHTML =
+                '<img class="product-card-img" src="' + p.image + '" alt="' + (p.alt || p.name) + '" loading="lazy" onerror="this.onerror=null;this.src=\'' + DEFAULT_IMAGE + '\';">' +
+                '<div class="product-card-body">' +
+                '<span class="product-category-badge">' + p.category + '</span>' +
+                '<h3>' + MYG.escapeHtml(p.name) + '</h3>' +
+                '<div class="product-unit">' + p.unit + (isKg ? ' — ' + pricePerUnit : '') + '</div>' +
+                '<div class="product-price" id="price-display-' + p.id + '">' + formatPrice(p.price) + (p.baseUnit === 'kg' ? ' /kg' : p.baseUnit === 'L' ? ' /L' : '') + '</div>' +
+                controlsHTML +
+                '<button class="btn btn-green btn-sm add-to-list-btn" data-id="' + p.id + '">Add to List</button>' +
+                '</div>';
+
+            var weightInput = card.querySelector('#weight-' + p.id) || card.querySelector('#qty-' + p.id) || card.querySelector('#egg-qty-' + p.id);
+            var priceDisplay = card.querySelector('#price-display-' + p.id);
+
+            function updateCardPrice() {
+                var val = parseFloat(weightInput.value) || 0;
+                if (val <= 0) { priceDisplay.textContent = formatPrice(0); return; }
+                if (isKg) {
+                    priceDisplay.textContent = formatPrice(calcItemPrice(p, val)) + ' (' + formatWeight(val, p.baseUnit) + ')';
+                } else if (isEgg) {
+                    var pt = card.querySelector('#purchase-type-' + p.id);
+                    var mult = pt && pt.value === 'case' ? 15 : 1;
+                    priceDisplay.textContent = formatPrice(p.price * val * mult) + ' (' + (val * mult) + ' eggs)';
+                } else if (isSizeQty) {
+                    var sz = card.querySelector('#size-' + p.id);
+                    var sm = p.sizeMultipliers ? (p.sizeMultipliers[sz.value] || 1.0) : 1.0;
+                    priceDisplay.textContent = formatPrice(p.price * sm * val);
+                } else if (isFixedPkg) {
+                    var pkgSz = p.packageSize || 1;
+                    priceDisplay.textContent = formatPrice(calcItemPrice(p, val)) + ' (' + (val * pkgSz) + ' ' + (p.packageUnit || 'pcs') + ')';
+                } else if (isL) {
+                    priceDisplay.textContent = formatPrice(calcItemPrice(p, val)) + ' (' + formatWeight(val, p.baseUnit) + ')';
+                } else {
+                    priceDisplay.textContent = formatPrice(calcItemPrice(p, val));
+                }
+            }
+
+            if (weightInput) {
+                weightInput.addEventListener('input', updateCardPrice);
+            }
+
+            card.querySelectorAll('.weight-adj').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var isWeight = p.baseUnit === 'kg' || p.baseUnit === 'L';
+                    var step = isWeight ? 0.5 : 1;
+                    var input = card.querySelector('#weight-' + p.id) || card.querySelector('#qty-' + p.id) || card.querySelector('#egg-qty-' + p.id);
+                    var current = parseFloat(input.value) || 0;
+                    var delta = parseInt(this.getAttribute('data-delta')) * step;
+                    if (isFixedPkg) { delta = parseInt(this.getAttribute('data-delta')); }
+                    var newVal = Math.round((current + delta) * 100) / 100;
+                    if (isFixedPkg) { newVal = Math.round(current + parseInt(this.getAttribute('data-delta'))); }
+                    if (newVal < 0.01) newVal = isWeight ? 0.01 : 1;
+                    input.value = newVal;
+                    updateCardPrice();
+                });
+            });
+
+            if (isEgg) {
+                var ptSelect = card.querySelector('#purchase-type-' + p.id);
+                if (ptSelect) ptSelect.addEventListener('change', updateCardPrice);
+            }
+            if (isSizeQty) {
+                var szSelect = card.querySelector('#size-' + p.id);
+                if (szSelect) szSelect.addEventListener('change', updateCardPrice);
+            }
+
+            card.querySelector('.add-to-list-btn').addEventListener('click', function() {
+                var qty = p.defaultQty || 1;
+                var itemData = { id: p.id, name: p.name, pricePerUnit: p.price, baseUnit: p.baseUnit, category: p.category, quantityType: p.quantityType };
+
+                if (isKg) {
+                    var weightEl = card.querySelector('#weight-' + p.id);
+                    var wv = parseFloat(weightEl.value);
+                    if (isNaN(wv) || wv <= 0) { alert('Please enter a valid weight (minimum 0.01 kg).'); return; }
+                    qty = wv;
+                    itemData.price = calcItemPrice(p, qty);
+                    itemData.unit = formatWeight(qty, 'kg');
+                } else if (isEgg) {
+                    var ptEl = card.querySelector('#purchase-type-' + p.id);
+                    var eqEl = card.querySelector('#egg-qty-' + p.id);
+                    var ev = parseInt(eqEl.value) || 1;
+                    var isCase = ptEl && ptEl.value === 'case';
+                    var mult = isCase ? 15 : 1;
+                    qty = ev;
+                    itemData.price = p.price * qty * mult;
+                    itemData.unit = (qty * mult) + ' eggs';
+                    itemData.purchaseType = isCase ? 'Case (15)' : 'Single';
+                    itemData.purchaseMultiplier = mult;
+                } else if (isSizeQty) {
+                    var szEl = card.querySelector('#size-' + p.id);
+                    var qEl = card.querySelector('#qty-' + p.id);
+                    var sv = parseInt(qEl.value) || 1;
+                    var selectedSize = szEl.value;
+                    var sizeMult = p.sizeMultipliers ? (p.sizeMultipliers[selectedSize] || 1.0) : 1.0;
+                    qty = sv;
+                    itemData.price = p.price * sizeMult * qty;
+                    itemData.unit = selectedSize + ' x ' + qty + ' pcs';
+                    itemData.selectedSize = selectedSize;
+                    itemData.sizeMultiplier = sizeMult;
+                } else if (isFixedPkg) {
+                    var qEl2 = card.querySelector('#qty-' + p.id);
+                    var qv = parseInt(qEl2.value) || 1;
+                    qty = qv;
+                    itemData.price = calcItemPrice(p, qty);
+                    var pkgSz = p.packageSize || 1;
+                    var pkgUnt = p.packageUnit || 'pcs';
+                    itemData.unit = qty + ' pack (' + (qty * pkgSz) + ' ' + pkgUnt + ')';
+                    itemData.packageSize = pkgSz;
+                    itemData.packageUnit = pkgUnt;
+                } else if (isL) {
+                    var qEl2 = card.querySelector('#qty-' + p.id);
+                    var val = parseFloat(qEl2.value) || 1;
+                    qty = val;
+                    itemData.price = calcItemPrice(p, qty);
+                    itemData.unit = formatWeight(qty, p.baseUnit);
+                    itemData.packageSize = p.packageSize || 1;
+                    itemData.packageUnit = p.packageUnit || 'L';
+                } else {
+                    var qEl2 = card.querySelector('#qty-' + p.id);
+                    var qv = parseInt(qEl2.value) || 1;
+                    qty = qv;
+                    itemData.price = calcItemPrice(p, qty);
+                    itemData.unit = qty + ' pcs';
+                }
+
+                itemData.quantity = qty;
+                MYG.addToShoppingList(itemData);
+                renderShoppingList();
+                this.textContent = 'Added!';
+                this.classList.add('btn-added');
+                var self = this;
+                setTimeout(function() { self.textContent = 'Add to List'; self.classList.remove('btn-added'); }, 1200);
+            });
+            return card;
+        }
+
+        function renderShoppingList() {
+            var panel = document.getElementById('panel-items');
+            var countBadge = document.getElementById('list-count');
+            var subtotalEl = document.getElementById('list-subtotal');
+            var list = MYG.getShoppingList();
+            var count = list.length;
+            var subtotal = MYG.calculateSubtotal(list);
+            countBadge.textContent = count;
+            subtotalEl.textContent = formatPrice(subtotal);
+            panel.innerHTML = '';
+            if (list.length === 0) {
+                panel.innerHTML = '<div class="panel-empty"><span class="empty-icon">&#128221;</span><p>Your shopping list is empty.<br>Click <strong>Add to List</strong> on any product.</p></div>';
+                return;
+            }
+            list.forEach(function(item) {
+                var lineTotal = MYG.calculateItemLineTotal(item);
+                var isKg = item.baseUnit === 'kg' || item.baseUnit === 'L';
+                var isEgg = item.quantityType === 'egg-package';
+                var isSizeQty = item.quantityType === 'size-qty';
+                var isFixedPkg = item.quantityType === 'fixed-package' && item.baseUnit !== 'L';
+                var isL = item.quantityType === 'fixed-package' && item.baseUnit === 'L';
+                var unitLabel = isKg ? formatWeight(item.quantity, item.baseUnit) : (isL ? formatWeight(item.quantity, item.baseUnit) : (item.unit || item.quantity + ' pcs'));
+                if (isEgg) {
+                    var mult = item.purchaseMultiplier || 1;
+                    unitLabel = item.quantity + ' ' + (item.purchaseType || 'Single') + ' (' + (item.quantity * mult) + ' eggs)';
+                }
+                if (isSizeQty) {
+                    unitLabel = (item.selectedSize || '1L') + ' x ' + item.quantity + ' pcs';
+                }
+                if (isFixedPkg) {
+                    var pkgSz = item.packageSize || 1;
+                    var pkgUnt = item.packageUnit || 'pcs';
+                    unitLabel = item.quantity + ' pack (' + (item.quantity * pkgSz) + ' ' + pkgUnt + ')';
+                }
+
+                var div = document.createElement('div');
+                div.className = 'list-item';
+
+                var qtyControls = '';
+                if (isKg) {
+                    qtyControls =
+                        '<div class="qty-controls">' +
+                        '<button class="qty-btn" data-id="' + item.id + '" data-delta="-1">&#8722;</button>' +
+                        '<input type="number" class="qty-input" data-id="' + item.id + '" value="' + item.quantity + '" step="any" min="0.01">' +
+                        '<button class="qty-btn" data-id="' + item.id + '" data-delta="1">+</button>' +
+                        '<span class="qty-unit">kg</span>' +
+                        '</div>';
+                } else if (isEgg) {
+                    qtyControls =
+                        '<div class="qty-controls">' +
+                        '<button class="qty-btn" data-id="' + item.id + '" data-delta="-1">&#8722;</button>' +
+                        '<input type="number" class="qty-input" data-id="' + item.id + '" value="' + item.quantity + '" step="1" min="1">' +
+                        '<button class="qty-btn" data-id="' + item.id + '" data-delta="1">+</button>' +
+                        '<span class="qty-unit">' + (item.purchaseType || 'Single') + '</span>' +
+                        '</div>';
+                } else if (isFixedPkg) {
+                    qtyControls =
+                        '<div class="qty-controls">' +
+                        '<button class="qty-btn" data-id="' + item.id + '" data-delta="-1">&#8722;</button>' +
+                        '<input type="number" class="qty-input" data-id="' + item.id + '" value="' + item.quantity + '" step="1" min="1">' +
+                        '<button class="qty-btn" data-id="' + item.id + '" data-delta="1">+</button>' +
+                        '<span class="qty-unit">' + (item.packageUnit || 'pack') + '</span>' +
+                        '</div>';
+                } else if (isL) {
+                    qtyControls =
+                        '<div class="qty-controls">' +
+                        '<button class="qty-btn" data-id="' + item.id + '" data-delta="-1">&#8722;</button>' +
+                        '<input type="number" class="qty-input" data-id="' + item.id + '" value="' + item.quantity + '" step="any" min="0.01">' +
+                        '<button class="qty-btn" data-id="' + item.id + '" data-delta="1">+</button>' +
+                        '<span class="qty-unit">L</span>' +
+                        '</div>';
+                } else {
+                    qtyControls =
+                        '<div class="qty-controls">' +
+                        '<button class="qty-btn" data-id="' + item.id + '" data-delta="-1">&#8722;</button>' +
+                        '<input type="number" class="qty-input" data-id="' + item.id + '" value="' + item.quantity + '" step="1" min="1">' +
+                        '<button class="qty-btn" data-id="' + item.id + '" data-delta="1">+</button>' +
+                        '<span class="qty-unit">pcs</span>' +
+                        '</div>';
+                }
+
+                div.innerHTML =
+                    '<div class="list-item-info">' +
+                    '<div class="list-item-name">' + MYG.escapeHtml(item.name) + '</div>' +
+                    '<div class="list-item-meta">' + MYG.escapeHtml(unitLabel) + ' &middot; ' + formatPrice(item.pricePerUnit || item.price) + (item.baseUnit === 'kg' ? '/kg' : item.baseUnit === 'L' ? '/L' : '') + '</div>' +
+                    '<div class="list-item-price">' + formatPrice(lineTotal) + '</div>' +
+                    '</div>' +
+                    qtyControls +
+                    '<button class="remove-btn" data-id="' + item.id + '">X</button>';
+
+                div.querySelectorAll('.qty-btn').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var step = (item.baseUnit === 'kg' || item.baseUnit === 'L') ? 0.5 : 1;
+                        var delta = parseInt(this.getAttribute('data-delta')) * step;
+                        if (isFixedPkg) { delta = parseInt(this.getAttribute('data-delta')); }
+                        var newQty = Math.round((item.quantity + delta) * 100) / 100;
+                        if (isFixedPkg) { newQty = Math.round(item.quantity + parseInt(this.getAttribute('data-delta'))); }
+                        if (newQty < (item.baseUnit === 'kg' ? 0.01 : 1)) newQty = item.baseUnit === 'kg' ? 0.01 : 1;
+                        MYG.updateQuantity(item.id, newQty);
+                        renderShoppingList();
+                    });
+                });
+
+                var qtyInput = div.querySelector('.qty-input');
+                if (qtyInput) {
+                    qtyInput.addEventListener('change', function() {
+                        var newVal = parseFloat(this.value);
+                        if (isNaN(newVal) || newVal <= 0) return;
+                        if (isFixedPkg) { newVal = Math.round(newVal); if (newVal < 1) newVal = 1; } else if (isL) { if (newVal < 0.01) newVal = 0.01; }
+                        newVal = Math.round(newVal * 100) / 100;
+                        MYG.updateQuantity(item.id, newVal);
+                        renderShoppingList();
+                    });
+                    qtyInput.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') { this.blur(); }
+                    });
+                }
+
+                div.querySelector('.remove-btn').addEventListener('click', function() { MYG.removeFromShoppingList(item.id); renderShoppingList(); });
+                panel.appendChild(div);
+            });
+        }
+
+        sortSelect.addEventListener('change', function() { currentSort = this.value; renderProducts(); });
+        searchInput.addEventListener('input', function() { currentSearch = this.value; renderProducts(); });
+        document.getElementById('btn-clear-list').addEventListener('click', function() {
+            if (confirm('Clear all items from your shopping list?')) { MYG.clearShoppingList(); renderShoppingList(); }
+        });
+
+        window.addEventListener('storage', function() { renderShoppingList(); });
+
+        initCategoryButtons();
+
+        renderProducts();
+        renderShoppingList();
+    })();
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - MYGrocery</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-top">
+            <a href="index.html" class="logo"><span class="logo-icon">&#128722;</span> MY<span>Grocery</span></a>
+            <button class="hamburger" aria-label="Toggle navigation menu"><span></span><span></span><span></span></button>
+        </div>
+        <nav class="main-nav">
+            <ul class="nav-list nav-main-links"></ul>
+            <ul class="nav-list nav-user-links"></ul>
+        </nav>
+    </header>
+
+    <main class="section">
+        <div class="container">
+
+            <!-- Logged Out State -->
+            <div id="profile-logged-out" class="empty-state" style="display:none;">
+                <span class="empty-icon">&#128100;</span>
+                <h3>You are not logged in</h3>
+                <p>Please login or create an account to view your profile.</p>
+                <a href="login.html" class="btn btn-primary" style="margin-top:1rem;">Login</a>
+                <a href="signup.html" class="btn btn-outline" style="margin-top:0.5rem;">Sign Up</a>
+            </div>
+
+            <!-- Logged In Dashboard -->
+            <div id="profile-content" style="display:none;">
+
+                <!-- Profile Header Card -->
+                <div class="profile-header-card" id="profile-header">
+                    <div class="profile-avatar-lg" id="profile-avatar"></div>
+                    <div class="profile-info" style="flex:1;">
+                        <h2 id="profile-name"></h2>
+                        <p>&#64;<span id="profile-username"></span></p>
+                        <p>&#128231; <span id="profile-email"></span></p>
+                        <p>&#128197; Age: <span id="profile-age"></span></p>
+                        <p style="font-size:0.85rem;opacity:0.7;">Member since: <span id="profile-joined"></span></p>
+                        <div class="profile-actions">
+                            <a href="calculator.html" class="btn btn-secondary">&#129518; Calculator</a>
+                            <a href="list.html" class="btn btn-secondary">&#128722; Grocery List</a>
+                            <a href="saved.html" class="btn btn-secondary">&#128194; Archives</a>
+                            <button id="btn-logout" class="btn btn-danger">&#128682; Logout</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stat Cards -->
+                <div class="stat-cards" id="stat-cards"></div>
+
+                <!-- Monthly Spending -->
+                <div class="card" style="margin-bottom:1.5rem;">
+                    <h3 style="color:var(--primary-dark);margin-bottom:1rem;">&#128197; Monthly Spending</h3>
+                    <div id="monthly-spending"></div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card" id="recent-activity-card" style="display:none;">
+                    <h3 style="color:var(--primary-dark);margin-bottom:1rem;">&#128337; Recent Activity</h3>
+                    <div id="recent-activity"></div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-grid">
+            <div class="footer-brand"><h3>&#128722; MYGrocery</h3><p>Smart Grocery List & Calculator.</p></div>
+            <div class="footer-col"><h4>Quick Links</h4><a href="index.html">Home</a><a href="calculator.html">Calculator</a><a href="list.html">Grocery List</a><a href="saved.html">Saved Calculations</a><a href="about.html">About</a><a href="contact.html">Contact</a></div>
+            <div class="footer-col"><h4>Contact</h4><a href="mailto:info@mygrocery.com.my">info@mygrocery.com.my</a><p style="font-size:0.85rem;color:rgba(255,255,255,0.6);margin-top:0.5rem;">Kuala Lumpur, Malaysia</p></div>
+        </div>
+        <div class="footer-bottom"><span>&copy; 2026 MYGrocery. All rights reserved.</span><span>JavaScript Lab Assignment</span></div>
+    </footer>
+
+    <script src="js/products.js"></script><script src="js/shopping-list.js"></script><script src="js/app.js"></script>
+    <script>
+    (function(){
+        MYG.renderNav('profile');
+        var session = MYG.getSession();
+        var loggedOut = document.getElementById('profile-logged-out');
+        var content = document.getElementById('profile-content');
+        if (!session || !session.loggedIn) { loggedOut.style.display='block'; content.style.display='none'; return; }
+        loggedOut.style.display='none'; content.style.display='block';
+
+        // Profile header
+        document.getElementById('profile-avatar').textContent = session.name.charAt(0).toUpperCase();
+        document.getElementById('profile-name').textContent = session.name;
+        document.getElementById('profile-username').textContent = session.username;
+        document.getElementById('profile-email').textContent = session.email;
+        document.getElementById('profile-age').textContent = session.age || 'Not specified';
+        document.getElementById('profile-joined').textContent = MYG.formatDate(session.joinedAt);
+
+        // Logout
+        document.getElementById('btn-logout').addEventListener('click', function(){
+            if (confirm('Are you sure you want to logout?')) { MYG.clearSession(); window.location.href='login.html'; }
+        });
+
+        // Data
+        var calcs = MYG.getSavedCalculations();
+        var list = MYG.getShoppingList();
+        var now = new Date();
+        var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        var currentMonth = months[now.getMonth()] + ' ' + now.getFullYear();
+
+        // This month
+        var thisMonthCalcs = calcs.filter(function(c){ return c.month === currentMonth; });
+        var totalThisMonth = 0;
+        thisMonthCalcs.forEach(function(c){ totalThisMonth += c.total; });
+        totalThisMonth = Math.round(totalThisMonth * 100) / 100;
+
+        // Historical total
+        var totalHistorical = 0;
+        calcs.forEach(function(c){ totalHistorical += c.total; });
+        totalHistorical = Math.round(totalHistorical * 100) / 100;
+
+        // Current list total
+        var listTotal = MYG.calculateSubtotal(list);
+
+        // Stat cards
+        document.getElementById('stat-cards').innerHTML =
+            '<div class="stat-card"><div class="stat-icon">&#128176;</div><div class="stat-value">' + formatPrice(totalThisMonth) + '</div><div class="stat-label">This Month Spending</div></div>' +
+            '<div class="stat-card"><div class="stat-icon">&#128200;</div><div class="stat-value">' + formatPrice(totalHistorical) + '</div><div class="stat-label">Total Historical Spending</div></div>' +
+            '<div class="stat-card"><div class="stat-icon">&#128202;</div><div class="stat-value">' + calcs.length + '</div><div class="stat-label">Saved Calculations</div></div>' +
+            '<div class="stat-card"><div class="stat-icon">&#128722;</div><div class="stat-value">' + formatPrice(listTotal) + '</div><div class="stat-label">Current List Total</div></div>';
+
+        // Monthly spending
+        var monthTotals = {};
+        calcs.forEach(function(c){
+            if (!monthTotals[c.month]) monthTotals[c.month] = { total: 0, count: 0 };
+            monthTotals[c.month].total += c.total;
+            monthTotals[c.month].count++;
+        });
+        var sortedMonths = Object.keys(monthTotals).sort(function(a,b){
+            return new Date(b) - new Date(a);
+        });
+        var msHtml = '';
+        if (sortedMonths.length === 0) {
+            msHtml = '<p style="color:var(--text-light);padding:1rem;">No saved calculations yet. <a href="calculator.html">Go to Calculator</a></p>';
+        } else {
+            sortedMonths.forEach(function(m){
+                var mt = Math.round(monthTotals[m].total * 100) / 100;
+                msHtml += '<div class="monthly-row" onclick="window.location.href=\'saved.html\'">' +
+                    '<div class="month-info"><strong>' + MYG.escapeHtml(m) + '</strong><span>' + monthTotals[m].count + ' calculation(s)</span></div>' +
+                    '<div class="month-total">' + formatPrice(mt) + '</div></div>';
+            });
+        }
+        document.getElementById('monthly-spending').innerHTML = msHtml;
+
+        // Recent activity
+        var recentCard = document.getElementById('recent-activity-card');
+        var recentDiv = document.getElementById('recent-activity');
+        if (calcs.length > 0) {
+            recentCard.style.display = 'block';
+            var latest = calcs[0];
+            var html = '';
+            html += '<div style="padding:0.8rem 0;border-bottom:1px solid var(--border);">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<div><strong>Latest Calculation</strong><br><span style="font-size:0.85rem;color:var(--text-light);">' + MYG.escapeHtml(latest.month) + ' &middot; ' + MYG.formatDate(latest.createdAt) + '</span></div>' +
+                '<div style="font-weight:800;color:var(--accent);">' + formatPrice(latest.total) + '</div></div></div>';
+            var recentItems = latest.items.length;
+            var itemNames = latest.items.slice(0, 3).map(function(i){ return i.name; }).join(', ');
+            if (latest.items.length > 3) itemNames += ' + ' + (latest.items.length - 3) + ' more';
+            html += '<div style="padding:0.8rem 0;">' +
+                '<span style="font-size:0.9rem;color:var(--text-light);">&#128230; ' + recentItems + ' items: ' + MYG.escapeHtml(itemNames) + '</span></div>';
+            recentDiv.innerHTML = html;
+        } else {
+            recentCard.style.display = 'none';
+        }
+    })();
+    </script>
+</body></html>
